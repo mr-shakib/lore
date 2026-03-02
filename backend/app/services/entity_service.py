@@ -113,7 +113,7 @@ class EntityService:
                 "name": entity.name,
                 "name_lower": entity.name.lower().strip(),
                 "entity_type": entity.entity_type.value,
-                "facts": json.dumps([f.model_dump() for f in entity.facts]),
+                "facts": json.dumps([f.model_dump(mode='json') for f in entity.facts]),
                 "is_stale": entity.is_stale,
                 "is_permanently_relevant": entity.is_permanently_relevant,
                 "mention_count": entity.mention_count,
@@ -133,7 +133,7 @@ class EntityService:
 
         updates: dict = {}
         if body.facts is not None:
-            updates["facts"] = json.dumps([f.model_dump() for f in body.facts])
+            updates["facts"] = json.dumps([f.model_dump(mode='json') for f in body.facts])
         if body.is_permanently_relevant is not None:
             updates["is_permanently_relevant"] = body.is_permanently_relevant
         if body.entity_type is not None:
