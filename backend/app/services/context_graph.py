@@ -34,6 +34,15 @@ class ContextGraphService:
     def __init__(self, conn: AsyncConnection) -> None:
         self.conn = conn
 
+    @staticmethod
+    def _parse_json_col(value, default):
+        """Handle JSONB columns that asyncpg/Supabase may return as already-parsed objects."""
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
+
     async def assemble_context(
         self, workspace_id: str, request: ContextRequest
     ) -> ContextResponse:
@@ -84,7 +93,7 @@ class ContextGraphService:
 
         rules: list[ContextRule] = []
         for row in result.mappings():
-            scope = json.loads(row["context_scope"]) if row["context_scope"] else {}
+            scope = self._parse_json_col(row["context_scope"], {})
             if self._context_scope_matches(scope, request.context_tags):
                 rules.append(
                     ContextRule(
@@ -92,7 +101,7 @@ class ContextGraphService:
                         text=row["text"],
                         rule_type=row["rule_type"],
                         confidence=float(row["confidence"]),
-                        tool_scope=json.loads(row["tool_scope"]) if row["tool_scope"] else ["*"],
+                        tool_scope=self._parse_json_col(row["tool_scope"], ["*"]),
                     )
                 )
 
@@ -126,7 +135,7 @@ class ContextGraphService:
 
         entities: list[ContextEntityFact] = []
         for row in result.mappings():
-            raw_facts = json.loads(row["facts"]) if row["facts"] else []
+            raw_facts = self._parse_json_col(row.get("facts"), [])
             facts_list: list[str] = []
             for f in raw_facts:
                 if isinstance(f, dict):

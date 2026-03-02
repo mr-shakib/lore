@@ -135,8 +135,16 @@ class EventCaptureService:
             logger.warning("kafka_publish_skipped", reason=str(exc), event_id=event.event_id)
 
     @staticmethod
+    def _parse_json_col(value, default):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
+
+    @staticmethod
     def _row_to_event(row: dict) -> CaptureEvent:
         """Convert a database row dict to a CaptureEvent model instance."""
-        row["context_tags"] = json.loads(row["context_tags"]) if row.get("context_tags") else {}
-        row["delta"] = json.loads(row["delta"]) if row.get("delta") else []
+        row["context_tags"] = EventCaptureService._parse_json_col(row.get("context_tags"), {})
+        row["delta"] = EventCaptureService._parse_json_col(row.get("delta"), [])
         return CaptureEvent(**row)

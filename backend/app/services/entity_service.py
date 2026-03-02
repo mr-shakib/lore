@@ -172,8 +172,16 @@ class EntityService:
     # ── Row mapper ────────────────────────────────────────────────────────────
 
     @staticmethod
+    def _parse_json_col(value, default):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
+
+    @staticmethod
     def _row_to_entity(row: dict) -> Entity:
-        raw_facts = json.loads(row["facts"]) if row.get("facts") else []
+        raw_facts = EntityService._parse_json_col(row.get("facts"), [])
         row["facts"] = [EntityFact(**f) if isinstance(f, dict) else f for f in raw_facts]
         row.setdefault("linked_corrections", [])
         row.setdefault("linked_decisions", [])

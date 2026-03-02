@@ -188,16 +188,25 @@ class RuleEngineService:
     # ── Row mappers ───────────────────────────────────────────────────────────
 
     @staticmethod
+    def _parse_json_col(value, default):
+        """Supabase/asyncpg may return JSONB as already-parsed objects — handle both."""
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return json.loads(value)
+        return value  # already a dict/list
+
+    @staticmethod
     def _row_to_rule(row: dict) -> Rule:
-        row["tool_scope"] = json.loads(row["tool_scope"]) if row.get("tool_scope") else ["*"]
-        row["context_scope"] = json.loads(row["context_scope"]) if row.get("context_scope") else {}
-        row["source_corrections"] = json.loads(row["source_corrections"]) if row.get("source_corrections") else []
+        row["tool_scope"] = RuleEngineService._parse_json_col(row.get("tool_scope"), ["*"])
+        row["context_scope"] = RuleEngineService._parse_json_col(row.get("context_scope"), {})
+        row["source_corrections"] = RuleEngineService._parse_json_col(row.get("source_corrections"), [])
         return Rule(**row)
 
     @staticmethod
     def _row_to_proposal(row: dict) -> RuleProposal:
-        row["tool_scope"] = json.loads(row["tool_scope"]) if row.get("tool_scope") else ["*"]
-        row["context_scope"] = json.loads(row["context_scope"]) if row.get("context_scope") else {}
-        row["source_corrections"] = json.loads(row["source_corrections"]) if row.get("source_corrections") else []
-        row["example_summaries"] = json.loads(row["example_summaries"]) if row.get("example_summaries") else []
+        row["tool_scope"] = RuleEngineService._parse_json_col(row.get("tool_scope"), ["*"])
+        row["context_scope"] = RuleEngineService._parse_json_col(row.get("context_scope"), {})
+        row["source_corrections"] = RuleEngineService._parse_json_col(row.get("source_corrections"), [])
+        row["example_summaries"] = RuleEngineService._parse_json_col(row.get("example_summaries"), [])
         return RuleProposal(**row)
