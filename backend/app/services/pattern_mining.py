@@ -123,6 +123,16 @@ class PatternMiningService:
                     cluster_size=len(cluster),
                 )
 
+        # Refresh last_supported on active rules whose tool scope matches valid clusters.
+        # This prevents the expiry checker from flagging rules with active evidence.
+        if valid_clusters:
+            tools_with_evidence: set[str] = {
+                cluster[0].get("tool", "") for cluster in valid_clusters if cluster
+            }
+            for tool in tools_with_evidence:
+                if tool:
+                    await self._refresh_last_supported(workspace_id, tool)
+
         # Always mark all fetched events processed, regardless of clustering outcome.
         # This prevents re-processing events that didn't meet the threshold.
         event_ids = [e["event_id"] for e in events]
@@ -218,6 +228,30 @@ class PatternMiningService:
                 "UPDATE correction_events SET processed = true WHERE event_id = ANY(:ids)"
             ),
             {"ids": event_ids},
+        )
+
+    async def _refresh_last_supported(self, workspace_id: str, tool: str) -> None:
+        """
+        Update last_supported = NOW() for active rules in this workspace whose
+        tool_scope includes this tool (or applies to all tools via '*').
+
+        Called after a valid correction cluster is found — the cluster is evidence
+        that corrections in this area are still happening, supporting existing rules.
+        """
+        await self.conn.execute(
+            text(
+                """
+                UPDATE rules
+                SET last_supported = NOW()
+                WHERE workspace_id = :ws
+                  AND status = 'active'
+                  AND (
+                      tool_scope::jsonb @> '["*"]'::jsonb
+                      OR tool_scope::jsonb @> jsonb_build_array(:tool)::jsonb
+                  )
+                """
+            ),
+            {"ws": workspace_id, "tool": tool},
         )
 
     # ── Clustering ────────────────────────────────────────────────────────────

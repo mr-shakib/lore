@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.database.postgres import get_connection
 from app.models.rules import (
+    ConflictResolveRequest,
     Rule,
     RuleConfirmRequest,
     RuleListResponse,
@@ -76,3 +77,29 @@ async def archive_rule(
     ok = await service.archive_rule(rule_id)
     if not ok:
         raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found.")
+
+
+@router.post(
+    "/{rule_id}/resolve-conflict",
+    response_model=Rule,
+    summary="Resolve a rule conflict",
+    description=(
+        "Resolves a conflict between two opposing rules. "
+        "Use action='keep' to restore this rule to active and archive the conflicting rule(s). "
+        "Use action='archive' to archive this rule and restore the conflicting rule(s) to active. "
+        "Only works when the rule has status='conflict'."
+    ),
+)
+async def resolve_conflict(
+    rule_id: str,
+    body: ConflictResolveRequest,
+    conn: AsyncConnection = Depends(get_connection),
+) -> Rule:
+    service = RuleEngineService(conn)
+    rule = await service.resolve_conflict(rule_id, body)
+    if not rule:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Rule {rule_id!r} not found or is not in conflict status.",
+        )
+    return rule

@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.database.postgres import get_connection
-from app.models.rules import Rule, RuleConfirmRequest, RuleProposal
+from app.models.rules import Rule, RuleConfirmRequest, RuleConfirmResponse, RuleProposal
 from app.services.rule_engine import RuleEngineService
 
 router = APIRouter()
@@ -34,23 +34,30 @@ async def list_proposals(
 
 @router.post(
     "/{proposal_id}/confirm",
-    response_model=Rule,
+    response_model=RuleConfirmResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Confirm a proposed rule (Admin+ only)",
+    description=(
+        "Confirms a rule proposal, creating an active behavioral rule. "
+        "Automatically runs conflict detection against existing active rules via Groq LLM. "
+        "If conflicts are found, both the new rule and the conflicting rule(s) are set to "
+        "status='conflict' and returned in `conflicts_detected`. "
+        "Resolve conflicts via POST /v1/rules/{rule_id}/resolve-conflict."
+    ),
 )
 async def confirm_proposal(
     proposal_id: str,
     body: RuleConfirmRequest,
     conn: AsyncConnection = Depends(get_connection),
-) -> Rule:
+) -> RuleConfirmResponse:
     service = RuleEngineService(conn)
-    rule = await service.confirm_proposal(proposal_id, body)
-    if not rule:
+    result = await service.confirm_proposal(proposal_id, body)
+    if not result:
         raise HTTPException(
             status_code=404,
             detail=f"Proposal {proposal_id!r} not found or already reviewed.",
         )
-    return rule
+    return result
 
 
 @router.post(
