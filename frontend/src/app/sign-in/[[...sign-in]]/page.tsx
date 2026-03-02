@@ -14,7 +14,7 @@ export default function SignInPage() {
           </div>
           <p className="text-text-muted text-sm">Organizational memory for AI-native teams</p>
         </div>
-        <SignIn />
+        <SignIn afterSignInUrl="/dashboard" />
       </div>
     </div>
   );

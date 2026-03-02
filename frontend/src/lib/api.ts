@@ -202,3 +202,7 @@ export async function runMining() {
 export async function runExpireCheck() {
   return post<unknown>("/v1/mining/expire-check", {});
 }
+
+export async function resolveConflict(id: string, action: "keep" | "archive") {
+  return post<Rule>(`/v1/rules/${id}/resolve-conflict`, { action });
+}

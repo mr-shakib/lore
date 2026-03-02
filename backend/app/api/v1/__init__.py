@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.v1.api_keys import router as api_keys_router
+from app.api.v1.bootstrap import router as bootstrap_router
 from app.api.v1.context import router as context_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.events import router as events_router
@@ -20,8 +21,9 @@ _auth = [Depends(require_auth)]
 router = APIRouter()
 
 # ── Open routes (no auth) ─────────────────────────────────────────────────────
-router.include_router(health_router, tags=["health"])
-router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
+router.include_router(health_router,    tags=["health"])
+router.include_router(webhooks_router,  prefix="/webhooks",     tags=["webhooks"])
+router.include_router(bootstrap_router, prefix="/auth/bootstrap", tags=["auth"])
 
 # ── Protected routes (require auth) ──────────────────────────────────────────
 router.include_router(events_router,    prefix="/events",    tags=["events"],    dependencies=_auth)

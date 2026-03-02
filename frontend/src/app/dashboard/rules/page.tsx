@@ -1,4 +1,4 @@
-import { getRules, getProposals, confirmProposal, rejectProposal, patchRule, deleteRule } from "@/lib/api";
+import { getRules, getProposals, confirmProposal, rejectProposal, patchRule, deleteRule, resolveConflict } from "@/lib/api";
 import StatusBadge from "@/components/status-badge";
 import PageHeader from "@/components/page-header";
 import { relativeTime, confidencePct, truncate } from "@/lib/utils";
@@ -28,6 +28,12 @@ async function archiveAction(id: string) {
 async function activateAction(id: string) {
   "use server";
   await patchRule(id, { status: "active" });
+  revalidatePath("/dashboard/rules");
+}
+
+async function keepConflictAction(id: string) {
+  "use server";
+  await resolveConflict(id, "keep");
   revalidatePath("/dashboard/rules");
 }
 
@@ -99,6 +105,7 @@ export default async function RulesPage() {
           color="text-red-lore"
           archiveAction={archiveAction}
           activateAction={activateAction}
+          keepAction={keepConflictAction}
         />
       )}
 
@@ -164,13 +171,14 @@ function SectionLabel({ label, count, color }: { label: string; count?: number; 
 }
 
 function RuleSection({
-  label, rules, color, archiveAction, activateAction,
+  label, rules, color, archiveAction, activateAction, keepAction,
 }: {
   label: string;
   rules: Awaited<ReturnType<typeof getRules>>["rules"];
   color: string;
   archiveAction: (id: string) => Promise<void>;
   activateAction: (id: string) => Promise<void>;
+  keepAction?: (id: string) => Promise<void>;
 }) {
   if (rules.length === 0 && label) return null;
   return (
@@ -199,11 +207,20 @@ function RuleSection({
                   </button>
                 </form>
               ) : (
-                <form action={archiveAction.bind(null, rule.id)}>
-                  <button type="submit" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-surface-2 text-text-muted border border-border rounded hover:bg-surface-3 transition-colors">
-                    <Trash2 className="w-3 h-3" /> Archive
-                  </button>
-                </form>
+                <>
+                  {rule.status === "conflict" && keepAction && (
+                    <form action={keepAction.bind(null, rule.id)}>
+                      <button type="submit" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-green-lore/10 text-green-lore border border-green-lore/20 rounded hover:bg-green-lore/20 transition-colors">
+                        <ShieldCheck className="w-3 h-3" /> Keep
+                      </button>
+                    </form>
+                  )}
+                  <form action={archiveAction.bind(null, rule.id)}>
+                    <button type="submit" className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-surface-2 text-text-muted border border-border rounded hover:bg-surface-3 transition-colors">
+                      <Trash2 className="w-3 h-3" /> Archive
+                    </button>
+                  </form>
+                </>
               )}
             </div>
           </div>
