@@ -39,14 +39,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         environment=settings.environment,
     )
 
-    await init_db()
-    await init_redis()
-    start_scheduler()
+    # ── PostgreSQL ────────────────────────────────────────────────────────
+    try:
+        await init_db()
+    except Exception as exc:
+        logger.error("postgres_init_failed", error=str(exc))
+        raise  # fatal — API cannot serve requests without DB
+
+    # ── Redis ─────────────────────────────────────────────────────────────
+    try:
+        await init_redis()
+    except Exception as exc:
+        # Non-fatal: caching degrades gracefully, requests still work
+        logger.warning("redis_init_failed", error=str(exc))
+
+    # ── Background scheduler ──────────────────────────────────────────────
+    try:
+        start_scheduler()
+    except Exception as exc:
+        # Non-fatal: mining runs manually via POST /v1/mining/run
+        logger.warning("scheduler_init_failed", error=str(exc))
 
     logger.info("lore_api_ready")
     yield
 
-    stop_scheduler()
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
     await close_db()
     await close_redis()
 
