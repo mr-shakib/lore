@@ -11,11 +11,7 @@
 ## Installation
 
 ```bash
-# From PyPI (when published)
 pip install loremem
-
-# From GitHub (MVP — no PyPI publish required)
-pip install git+https://github.com/mr-shakib/lore#subdirectory=sdk/python
 ```
 
 ---
