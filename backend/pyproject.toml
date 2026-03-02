@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "lore-backend"
 version = "0.1.0"
 description = "Lore — Organizational Memory Layer for AI-Native Companies"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     # Web framework
