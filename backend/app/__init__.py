@@ -1,0 +1,3 @@
+"""
+Lore Backend — App package.
+"""
