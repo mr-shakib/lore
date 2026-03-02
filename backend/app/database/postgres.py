@@ -49,6 +49,8 @@ async def init_db() -> None:
         # Supabase uses PgBouncer in transaction mode which does not support
         # prepared statements — disabling the cache avoids DuplicatePreparedStatementError
         "statement_cache_size": 0,
+        # Fail fast if the host is unreachable (e.g. wrong env var on Render)
+        "timeout": 10,
     }
     if parsed.username and "." in parsed.username:
         connect_args["user"] = parsed.username

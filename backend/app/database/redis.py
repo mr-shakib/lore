@@ -28,7 +28,12 @@ async def init_redis() -> None:
 
     # Upstash Redis uses rediss:// (TLS). ssl_cert_reqs=None disables cert
     # verification, which is required for Upstash's managed TLS certificates.
-    kwargs: dict = {"encoding": "utf-8", "decode_responses": True}
+    kwargs: dict = {
+        "encoding": "utf-8",
+        "decode_responses": True,
+        "socket_connect_timeout": 10,
+        "socket_timeout": 10,
+    }
     if settings.redis_url.startswith("rediss://"):
         kwargs["ssl_cert_reqs"] = None
 
