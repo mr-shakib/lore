@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "loremem"
+version = "0.1.0"
+description = "Lore SDK — inject organizational memory into any AI agent"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["ai", "agents", "memory", "context", "llm", "lore"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",   # httpx mock library
+]
+
+[project.urls]
+Homepage = "https://github.com/mr-shakib/lore"
+Documentation = "https://github.com/mr-shakib/lore/tree/main/sdk/python"
+Repository = "https://github.com/mr-shakib/lore"
+Issues = "https://github.com/mr-shakib/lore/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["loremem"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
