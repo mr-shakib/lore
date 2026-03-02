@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production", "testing"] = "development"
     debug: bool = False
     secret_key: str = "change-me-in-production"
+    docs_enabled: bool = True  # Set to False to hide /docs and /redoc in production
 
     # ── PostgreSQL (Supabase) ─────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/lore"

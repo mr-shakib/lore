@@ -64,9 +64,9 @@ def create_app() -> FastAPI:
             "Captures AI corrections, builds a Company Context Graph, and injects "
             "context back into every future AI call."
         ),
-        # Hide docs in production
-        docs_url="/docs" if not settings.is_production else None,
-        redoc_url="/redoc" if not settings.is_production else None,
+        # Docs visible unless explicitly disabled (DOCS_ENABLED=false)
+        docs_url="/docs" if settings.docs_enabled else None,
+        redoc_url="/redoc" if settings.docs_enabled else None,
         lifespan=lifespan,
     )
 
