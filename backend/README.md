@@ -195,9 +195,9 @@ Full interactive docs at http://localhost:8000/docs when running locally.
 | GET | `/v1/events/{event_id}` | Get a single event |
 | POST | `/v1/context` | **Core endpoint** — fetch context for AI injection |
 | GET | `/v1/rules` | List rules |
-| GET | `/v1/rules/proposals` | List pending rule proposals |
-| POST | `/v1/rules/proposals/{id}/confirm` | Confirm a rule proposal |
-| POST | `/v1/rules/proposals/{id}/dismiss` | Dismiss a rule proposal |
+| GET | `/v1/proposals` | List pending rule proposals |
+| POST | `/v1/proposals/{id}/confirm` | Confirm a rule proposal |
+| POST | `/v1/proposals/{id}/dismiss` | Dismiss a rule proposal |
 | PATCH | `/v1/rules/{rule_id}` | Update a rule |
 | GET | `/v1/entities` | List entities |
 | POST | `/v1/entities` | Manually create an entity |
