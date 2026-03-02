@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database.postgres import close_db, init_db
 from app.database.redis import close_redis, init_redis
+from app.workers.pattern_mining_worker import start_scheduler, stop_scheduler
 
 logger = structlog.get_logger(__name__)
 
@@ -40,10 +41,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await init_db()
     await init_redis()
+    start_scheduler()
 
     logger.info("lore_api_ready")
     yield
 
+    stop_scheduler()
     await close_db()
     await close_redis()
 

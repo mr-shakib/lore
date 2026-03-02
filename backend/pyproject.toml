@@ -46,6 +46,9 @@ dependencies = [
     # LLM (Groq — free tier, OpenAI-compatible API)
     "groq>=0.11.0",
 
+    # Background task scheduler (pattern mining worker)
+    "apscheduler>=3.10.0",
+
     # Crypto (Slack/GitHub signature verification)
     "cryptography>=42.0.0",
 ]

@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     linear_webhook_secret: str | None = None
     github_webhook_secret: str | None = None
 
+    # ── Pattern mining ──────────────────────────────────────────────────────────
+    pattern_mining_interval_hours: int = 6    # How often the background worker runs
+    pattern_mining_cluster_threshold: float = 0.55  # SequenceMatcher similarity threshold
+    pattern_mining_min_events: int = 3        # Min events to form a valid cluster
+    pattern_mining_min_actors: int = 2        # Min unique actors to form a valid cluster
+
     # ── Rate limits ───────────────────────────────────────────────────────────
     event_rate_limit_per_workspace: int = 1000   # events/minute
     context_api_rate_limit: int = 100             # requests/minute per workspace
