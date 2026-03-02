@@ -1,0 +1,91 @@
+# Render Infrastructure as Code
+# Docs: https://render.com/docs/infrastructure-as-code
+#
+# Deploy instructions:
+#   1. Push this repo to GitHub (github.com/mr-shakib/lore)
+#   2. In Render dashboard → New → Blueprint → connect repo
+#   3. Render will read this file and create the service
+#   4. Set all env vars marked sync: false manually in the Render dashboard
+#      (Dashboard → lore-api → Environment)
+
+services:
+  - type: web
+    name: lore-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: singapore          # closest to Supabase ap-southeast-1
+    plan: free                 # upgrade to starter ($7/mo) when design partners onboard
+    healthCheckPath: /v1/health
+    autoDeploy: true           # redeploy on every push to main
+
+    envVars:
+      # ── App ────────────────────────────────────────────────────────────────
+      - key: APP_NAME
+        value: "Lore API"
+      - key: APP_VERSION
+        value: "0.1.0"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true    # Render generates a secure random value once
+
+      # ── PostgreSQL (Supabase) ───────────────────────────────────────────────
+      - key: DATABASE_URL
+        sync: false            # paste from backend/.env — never commit to git
+
+      # ── Redis (Upstash) ────────────────────────────────────────────────────
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+      # ── Kafka ──────────────────────────────────────────────────────────────
+      - key: KAFKA_ENABLED
+        value: "false"
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        value: "localhost:9092"   # placeholder — not used while KAFKA_ENABLED=false
+      - key: KAFKA_USE_SASL
+        value: "false"
+      - key: KAFKA_TOPIC_EVENTS
+        value: "lore.events"
+      - key: KAFKA_TOPIC_CORRECTIONS
+        value: "lore.corrections"
+      - key: KAFKA_CONSUMER_GROUP
+        value: "lore-backend"
+
+      # ── LLM providers (fill when pattern mining is built — M2) ────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: PATTERN_MINING_MODEL
+        value: "gpt-4o-mini"
+      - key: CONTEXT_INJECTION_MODEL
+        value: "claude-3-haiku-20240307"
+
+      # ── Auth (Clerk — fill when auth middleware is built) ─────────────────
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false
+
+      # ── Integrations (fill when connecting design partner tools) ──────────
+      - key: SLACK_SIGNING_SECRET
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: LINEAR_WEBHOOK_SECRET
+        sync: false
+
+      # ── Logging ───────────────────────────────────────────────────────────
+      - key: LOG_LEVEL
+        value: "info"

@@ -8,12 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps first (layer caching)
-COPY pyproject.toml .
-RUN pip install --no-cache-dir -e ".[dev]"
-
-# Copy source
+# Copy source first (editable install needs the package on disk)
 COPY . .
+
+# Install production deps only — no dev extras (pytest, faker, mypy, ruff)
+RUN pip install --no-cache-dir .
 
 EXPOSE 8000
 

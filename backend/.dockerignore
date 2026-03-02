@@ -1,0 +1,50 @@
+# Keep the Docker image lean — exclude everything that isn't needed at runtime
+
+# Secrets — never ship these
+.env
+.env.*
+!.env.example
+
+# Virtual environment (deps installed fresh inside the image)
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Type checker / linter caches
+.mypy_cache/
+.ruff_cache/
+
+# Build artefacts
+dist/
+build/
+*.egg-info/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Docs
+*.md
