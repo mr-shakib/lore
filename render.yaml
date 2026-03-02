@@ -58,17 +58,13 @@ services:
       - key: KAFKA_CONSUMER_GROUP
         value: "lore-backend"
 
-      # ── LLM providers (fill when pattern mining is built — M2) ────────────
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY
+      # ── LLM (Groq — free tier) ─────────────────────────────────────────────
+      - key: GROQ_API_KEY
         sync: false
       - key: PATTERN_MINING_MODEL
-        value: "gpt-4o-mini"
+        value: "llama-3.3-70b-versatile"
       - key: CONTEXT_INJECTION_MODEL
-        value: "claude-3-haiku-20240307"
+        value: "llama-3.3-70b-versatile"
 
       # ── Auth (Clerk — fill when auth middleware is built) ─────────────────
       - key: CLERK_SECRET_KEY

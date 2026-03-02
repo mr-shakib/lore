@@ -50,12 +50,10 @@ class Settings(BaseSettings):
     kafka_topic_corrections: str = "lore.corrections"
     kafka_consumer_group: str = "lore-backend"
 
-    # ── LLM ───────────────────────────────────────────────────────────────────
-    anthropic_api_key: str | None = None
-    openai_api_key: str | None = None
-    google_api_key: str | None = None
-    pattern_mining_model: str = "gpt-4o-mini"
-    context_injection_model: str = "claude-3-haiku-20240307"
+    # ── LLM (Groq — free tier) ───────────────────────────────────────────────
+    groq_api_key: str = ""
+    pattern_mining_model: str = "llama-3.3-70b-versatile"
+    context_injection_model: str = "llama-3.3-70b-versatile"
 
     # ── Auth (Clerk) ──────────────────────────────────────────────────────────
     clerk_secret_key: str | None = None
