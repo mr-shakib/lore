@@ -183,7 +183,7 @@ class EntityService:
     def _row_to_entity(row: dict) -> Entity:
         raw_facts = EntityService._parse_json_col(row.get("facts"), [])
         row["facts"] = [EntityFact(**f) if isinstance(f, dict) else f for f in raw_facts]
-        row.setdefault("linked_corrections", [])
-        row.setdefault("linked_decisions", [])
-        row.setdefault("linked_rules", [])
+        row["linked_corrections"] = EntityService._parse_json_col(row.get("linked_corrections"), [])
+        row["linked_decisions"] = EntityService._parse_json_col(row.get("linked_decisions"), [])
+        row["linked_rules"] = EntityService._parse_json_col(row.get("linked_rules"), [])
         return Entity(**row)
