@@ -32,6 +32,7 @@ export class ServerError extends LoreAiError {
 }
 
 export class NetworkError extends LoreAiError {
+  declare cause?: Error;
   constructor(cause?: unknown) {
     super(cause instanceof Error ? cause.message : "Network error");
     this.name = "NetworkError";
