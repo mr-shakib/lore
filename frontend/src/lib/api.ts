@@ -1,17 +1,17 @@
 /**
  * Server-side API client for the Lore backend.
- * All functions are safe to call from Server Components and Server Actions.
- * Uses LORE_API_KEY + LORE_WORKSPACE_ID from environment.
+ * Uses the active Clerk session token — no API key needed.
  */
 
-const BASE_URL = process.env.LORE_API_URL ?? "https://lore-m0st.onrender.com";
-const API_KEY = process.env.LORE_API_KEY ?? "";
-const WORKSPACE_ID = process.env.LORE_WORKSPACE_ID ?? "";
+import { auth } from "@clerk/nextjs/server";
 
-function headers(): Record<string, string> {
+const BASE_URL = process.env.LORE_API_URL ?? "https://lore-m0st.onrender.com";
+
+async function headers(): Promise<Record<string, string>> {
+  const { getToken } = await auth();
+  const token = await getToken();
   return {
-    Authorization: `Bearer ${API_KEY}`,
-    "X-Workspace-ID": WORKSPACE_ID,
+    Authorization: `Bearer ${token ?? ""}`,
     "Content-Type": "application/json",
   };
 }
@@ -24,8 +24,8 @@ async function get<T>(path: string, params?: Record<string, string | number | un
     }
   }
   const res = await fetch(url.toString(), {
-    headers: headers(),
-    next: { revalidate: 30 }, // cache for 30s then revalidate
+    headers: await headers(),
+    cache: "no-store",
   });
   if (!res.ok) throw new Error(`Lore API error ${res.status}: ${path}`);
   return res.json();
@@ -34,7 +34,7 @@ async function get<T>(path: string, params?: Record<string, string | number | un
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(BASE_URL + path, {
     method: "POST",
-    headers: headers(),
+    headers: await headers(),
     body: JSON.stringify(body),
     cache: "no-store",
   });
@@ -48,7 +48,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 async function del(path: string): Promise<void> {
   const res = await fetch(BASE_URL + path, {
     method: "DELETE",
-    headers: headers(),
+    headers: await headers(),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Lore API error ${res.status}: ${path}`);
@@ -132,10 +132,6 @@ export interface PaginatedResponse<T> {
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
-export function isConfigured(): boolean {
-  return Boolean(API_KEY);
-}
-
 export async function getHealth() {
   return get<{ status: string; version: string; timestamp: string }>("/v1/health");
 }
@@ -171,7 +167,7 @@ export async function rejectProposal(id: string) {
 export async function patchRule(id: string, body: Partial<Pick<Rule, "status" | "content" | "confidence">>) {
   const res = await fetch(`${BASE_URL}/v1/rules/${id}`, {
     method: "PATCH",
-    headers: headers(),
+    headers: await headers(),
     body: JSON.stringify(body),
     cache: "no-store",
   });

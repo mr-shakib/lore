@@ -250,13 +250,25 @@ async def _auth_clerk_jwt(token: str, conn: AsyncConnection) -> AuthContext:
             workspace_id = record.workspace_id
 
     if not workspace_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "Could not determine workspace for this user. "
-                "Ensure the user belongs to a workspace."
-            ),
-        )
+        # First-time user — auto-assign to the seed workspace
+        import sqlalchemy
+        seed = "ws_01jng0q5xze7v4g7xp64cj3vxh"
+        email = claims.get("email") or f"{clerk_user_id}@clerk"
+        try:
+            await conn.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO users (id, workspace_id, email)
+                    VALUES (:id, :ws, :email)
+                    ON CONFLICT (id) DO UPDATE SET workspace_id = :ws
+                    """
+                ),
+                {"id": clerk_user_id, "ws": seed, "email": email},
+            )
+            await conn.commit()
+        except Exception as exc:
+            logger.warning("user_upsert_failed", error=str(exc))
+        workspace_id = seed
 
     return AuthContext(
         workspace_id=workspace_id,

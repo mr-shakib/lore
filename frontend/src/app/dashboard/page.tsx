@@ -1,4 +1,4 @@
-import { getRules, getEvents, getEntities, getProposals, isConfigured } from "@/lib/api";
+import { getRules, getEvents, getEntities, getProposals } from "@/lib/api";
 import StatsCard from "@/components/stats-card";
 import StatusBadge from "@/components/status-badge";
 import { ShieldCheck, MessageSquareWarning, Network, Lightbulb, AlertTriangle, Clock } from "lucide-react";
@@ -8,7 +8,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 async function fetchDashboardData() {
-  if (!isConfigured()) return null;
   try {
     const [rulesRes, eventsRes, entitiesRes, proposalsRes] = await Promise.allSettled([
       getRules({ limit: 100 }),
@@ -28,10 +27,6 @@ async function fetchDashboardData() {
 }
 
 export default async function DashboardPage() {
-  if (!isConfigured()) {
-    return <SetupRequired />;
-  }
-
   const data = await fetchDashboardData();
 
   const rules     = data?.rules?.rules     ?? [];
@@ -234,28 +229,6 @@ function EmptyState({ label, hint }: { label: string; hint?: string }) {
     <div className="px-4 py-10 text-center">
       <p className="text-sm text-text-muted">{label}</p>
       {hint && <p className="text-xs text-text-faint mt-1 max-w-xs mx-auto">{hint}</p>}
-    </div>
-  );
-}
-
-function SetupRequired() {
-  return (
-    <div className="max-w-xl mx-auto mt-20 space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-10 h-10 rounded-md bg-amber/10 border border-amber/20 flex items-center justify-center mx-auto">
-          <AlertTriangle className="w-5 h-5 text-amber" />
-        </div>
-        <h1 className="text-lg font-semibold text-text">API Key Required</h1>
-        <p className="text-sm text-text-muted">Set <code className="font-mono text-amber bg-amber/10 px-1.5 py-0.5 rounded">LORE_API_KEY</code> in <code className="font-mono text-text-muted bg-surface-2 px-1.5 py-0.5 rounded">.env.local</code> to connect the dashboard to your backend.</p>
-      </div>
-      <div className="rounded-md border border-border bg-surface-1 p-4 space-y-3">
-        <p className="text-xs text-text-muted font-mono uppercase tracking-widest">Setup (one-time)</p>
-        <pre className="text-xs font-mono text-amber bg-surface p-3 rounded border border-border overflow-x-auto">{`curl -X POST https://lore-m0st.onrender.com/v1/auth/api-keys \\
-  -H "Authorization: Bearer <any-key>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "dashboard", "scopes": ["read", "write"]}'`}</pre>
-        <p className="text-xs text-text-faint">Copy the <code className="font-mono">plaintext_key</code> from the response and set it as <code className="font-mono">LORE_API_KEY</code> in your <code className="font-mono">.env.local</code>.</p>
-      </div>
     </div>
   );
 }
