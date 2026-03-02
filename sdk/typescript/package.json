@@ -1,0 +1,36 @@
+{
+  "name": "@lore-ai/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript/JavaScript SDK for Lore — organizational AI memory",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["lore", "ai", "memory", "context", "rag"],
+  "author": "Lore",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsup": "^8.1.0",
+    "vitest": "^1.6.0",
+    "msw": "^2.3.0"
+  }
+}
