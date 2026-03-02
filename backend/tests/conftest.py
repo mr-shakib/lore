@@ -14,6 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.main import create_app
+from app.middleware.auth import AuthContext, require_auth
 
 
 # ── App fixture (disables real DB lifespan) ───────────────────────────────────
@@ -29,6 +30,25 @@ async def client(app):
     """Async test client — use this in all API tests."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
+
+
+# ── Auth bypass ───────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def bypass_auth(app):
+    """
+    Bypass auth for all tests — injects a test AuthContext for ws_test.
+
+    Individual tests may call app.dependency_overrides.clear() in their
+    finally blocks; that's fine because the request completes before the clear.
+    The override is re-set at the start of each test by this autouse fixture.
+    """
+    _test_auth = AuthContext(
+        workspace_id="ws_test",
+        auth_type="api_key",
+        api_key_id="test_key",
+    )
+    app.dependency_overrides[require_auth] = lambda: _test_auth
 
 
 # ── Mock dependencies ──────────────────────────────────────────────────────────
