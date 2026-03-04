@@ -91,7 +91,13 @@ def get_engine() -> AsyncEngine:
 
 async def get_connection() -> AsyncGenerator[AsyncConnection, None]:
     """
-    FastAPI dependency — yields an open database connection.
+    FastAPI dependency — yields an open database connection inside a transaction.
+
+    Uses ``engine.begin()`` so the transaction is committed automatically when
+    the request handler returns successfully, and rolled back on any exception.
+    Handlers that need to commit earlier (e.g. to release locks) can call
+    ``await conn.commit()`` explicitly — SQLAlchemy will start a new implicit
+    transaction for subsequent statements.
 
     Usage::
 
@@ -99,7 +105,7 @@ async def get_connection() -> AsyncGenerator[AsyncConnection, None]:
         async def example(conn: AsyncConnection = Depends(get_connection)):
             result = await conn.execute(text("SELECT 1"))
     """
-    async with get_engine().connect() as conn:
+    async with get_engine().begin() as conn:
         yield conn
 
 

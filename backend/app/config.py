@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     clerk_publishable_key: str | None = None
     clerk_webhook_secret: str | None = None
 
+    # Seed workspace — all new users are auto-assigned here on first sign-in.
+    # Must match the workspace_id inserted by migrations/005_seed_workspace.sql.
+    seed_workspace_id: str = "ws_01jng0q5xze7v4g7xp64cj3vxh"
+
     # ── Integrations ──────────────────────────────────────────────────────────
     slack_signing_secret: str | None = None
     slack_bot_token: str | None = None

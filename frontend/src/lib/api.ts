@@ -116,7 +116,6 @@ export interface ApiKey {
   id: string;
   name: string;
   scopes: string[];
-  created_by: string | null;
   last_used_at: string | null;
   expires_at: string | null;
   created_at: string;
@@ -180,11 +179,14 @@ export async function deleteRule(id: string) {
 }
 
 export async function getApiKeys() {
-  return get<{ api_keys: ApiKey[] }>("/v1/auth/api-keys");
+  // Backend returns { keys: ApiKey[], total: number }
+  return get<{ keys: ApiKey[]; total: number }>("/v1/auth/api-keys");
 }
 
 export async function createApiKey(name: string, scopes: string[]) {
-  return post<{ api_key: ApiKey; plaintext_key: string }>("/v1/auth/api-keys", { name, scopes });
+  // Backend returns a flat response: { id, name, key, scopes, workspace_id, created_at, expires_at }
+  // The plaintext key is in the `key` field (shown only once).
+  return post<{ id: string; name: string; key: string; scopes: string[]; workspace_id: string; created_at: string; expires_at: string | null }>("/v1/auth/api-keys", { name, scopes });
 }
 
 export async function deleteApiKey(id: string) {

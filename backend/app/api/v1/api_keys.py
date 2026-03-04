@@ -110,7 +110,7 @@ async def create_api_key(
             INSERT INTO api_keys (id, workspace_id, key_hash, name, scopes, created_by, expires_at)
             VALUES (:id, :workspace_id, :key_hash, :name, :scopes, :created_by, :expires_at)
             """
-        ),
+        ).bindparams(sa.bindparam("scopes", type_=sa.ARRAY(sa.Text()))),
         {
             "id": key_id,
             "workspace_id": auth.workspace_id,

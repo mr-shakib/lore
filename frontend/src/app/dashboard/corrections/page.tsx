@@ -32,15 +32,13 @@ export default async function CorrectionsPage() {
           <p className="text-xs text-text-faint mt-1 max-w-sm mx-auto">
             Integrate the Lore SDK into your AI agents and events will appear here.
           </p>
-          <pre className="mt-6 text-left inline-block text-xs font-mono text-amber bg-surface-1 border border-border px-4 py-3 rounded-md">
-{`pip install loremem
-
-from loremem import LoreClient
-lore = LoreClient(
-  api_key="sk-lore-...",
-  workspace_id="ws_..."
-)`}
-          </pre>
+          <p className="mt-4 text-xs text-text-faint">
+            Get your credentials from the{" "}
+            <a href="/dashboard/api-keys" className="text-amber hover:text-amber-bright underline underline-offset-2 transition-colors">
+              API Keys page
+            </a>
+            , then integrate the SDK.
+          </p>
         </div>
       ) : (
         <div className="space-y-6">

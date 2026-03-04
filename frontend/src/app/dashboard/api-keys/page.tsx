@@ -1,38 +1,24 @@
-import { getApiKeys, createApiKey, deleteApiKey } from "@/lib/api";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { getApiKeys, type ApiKey } from "@/lib/api";
 import ApiKeysClientPage from "./_client";
+import { deleteKeyAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-async function handleFormAction(formData: FormData) {
-  "use server";
-  const action = formData.get("_action") as string;
-
-  if (action === "create") {
-    const name   = formData.get("name") as string;
-    const scopes = ((formData.get("scopes") as string) ?? "read,write").split(",").map(s => s.trim());
-    await createApiKey(name, scopes);
-    revalidatePath("/dashboard/api-keys");
-  }
-
-  if (action === "delete") {
-    const id = formData.get("id") as string;
-    await deleteApiKey(id);
-    revalidatePath("/dashboard/api-keys");
-  }
-}
-
 export default async function ApiKeysPage() {
-  let keys: Awaited<ReturnType<typeof getApiKeys>>["api_keys"] = [];
+  let keys: ApiKey[] = [];
   try {
     const res = await getApiKeys();
-    keys = res.api_keys;
-  } catch { /* empty */ }
+    keys = res.keys ?? [];
+  } catch { /* show empty state */ }
+
+  // Derive workspace_id from any existing key (all share the same workspace)
+  const workspaceId = keys[0]?.workspace_id ?? null;
 
   return (
-    <form action={handleFormAction}>
-      <ApiKeysClientPage data={{ keys }} />
-    </form>
+    <ApiKeysClientPage
+      initialKeys={keys}
+      workspaceId={workspaceId}
+      deleteAction={deleteKeyAction}
+    />
   );
 }

@@ -76,7 +76,13 @@ def _clerk_jwks_url(publishable_key: str) -> str:
 
 
 async def _get_jwks() -> dict:
-    """Fetch and cache Clerk JWKS keys."""
+    """Fetch and cache Clerk JWKS keys.
+
+    Uses two strategies in order of preference:
+    1. Authenticated Clerk Backend API  (GET api.clerk.com/v1/jwks + secret key)
+       — most reliable; doesn't depend on publishable-key URL derivation.
+    2. Publishable-key derived URL  (fallback if only publishable key is set).
+    """
     global _jwks_cache, _jwks_fetched_at
 
     now = time.monotonic()
@@ -85,13 +91,32 @@ async def _get_jwks() -> dict:
 
     from app.config import settings
 
+    import httpx
+
+    # Strategy 1 — authenticated backend API (preferred)
+    if settings.clerk_secret_key:
+        jwks_url = "https://api.clerk.com/v1/jwks"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    jwks_url,
+                    headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+                )
+                resp.raise_for_status()
+                _jwks_cache = resp.json()
+                _jwks_fetched_at = now
+                logger.info("clerk_jwks_refreshed", source="backend_api")
+                return _jwks_cache
+        except Exception as exc:
+            logger.warning("clerk_jwks_backend_api_failed", error=str(exc))
+            # Fall through to strategy 2
+
+    # Strategy 2 — derive URL from publishable key
     if not settings.clerk_publishable_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Clerk is not configured — CLERK_PUBLISHABLE_KEY missing.",
+            detail="Clerk is not configured — set CLERK_SECRET_KEY or CLERK_PUBLISHABLE_KEY.",
         )
-
-    import httpx
 
     jwks_url = _clerk_jwks_url(settings.clerk_publishable_key)
     try:
@@ -100,7 +125,7 @@ async def _get_jwks() -> dict:
             resp.raise_for_status()
             _jwks_cache = resp.json()
             _jwks_fetched_at = now
-            logger.info("clerk_jwks_refreshed", url=jwks_url)
+            logger.info("clerk_jwks_refreshed", source="publishable_key_url", url=jwks_url)
             return _jwks_cache
     except Exception as exc:
         logger.error("clerk_jwks_fetch_failed", error=str(exc))
@@ -218,7 +243,7 @@ async def _auth_clerk_jwt(token: str, conn: AsyncConnection) -> AuthContext:
         logger.warning("clerk_jwt_invalid", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
+            detail=f"Token validation failed: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -250,11 +275,25 @@ async def _auth_clerk_jwt(token: str, conn: AsyncConnection) -> AuthContext:
             workspace_id = record.workspace_id
 
     if not workspace_id:
-        # First-time user — auto-assign to the seed workspace
+        # First-time user — auto-assign to the seed workspace.
+        # Also ensure the workspace row exists (guards against missing migration).
+        from app.config import settings as _settings
         import sqlalchemy
-        seed = "ws_01jng0q5xze7v4g7xp64cj3vxh"
+        seed = _settings.seed_workspace_id
         email = claims.get("email") or f"{clerk_user_id}@clerk"
         try:
+            # Ensure workspace exists first (idempotent)
+            await conn.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO workspaces (workspace_id, name, plan)
+                    VALUES (:ws, 'Default Workspace', 'starter')
+                    ON CONFLICT (workspace_id) DO NOTHING
+                    """
+                ),
+                {"ws": seed},
+            )
+            # Now upsert the user
             await conn.execute(
                 sqlalchemy.text(
                     """

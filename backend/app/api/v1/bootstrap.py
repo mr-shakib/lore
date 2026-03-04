@@ -11,7 +11,6 @@ POST /v1/auth/bootstrap
 
 from __future__ import annotations
 
-import os
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,12 +26,10 @@ router = APIRouter(prefix="/v1/auth", tags=["bootstrap"])
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
-_SEED_WORKSPACE_ENV = "SEED_WORKSPACE_ID"
-_DEFAULT_SEED_WORKSPACE = "ws_01jng0q5xze7v4g7xp64cj3vxh"
-
 
 def _seed_workspace() -> str:
-    return os.getenv(_SEED_WORKSPACE_ENV, _DEFAULT_SEED_WORKSPACE)
+    from app.config import settings
+    return settings.seed_workspace_id
 
 
 class BootstrapResponse(BaseModel):
@@ -56,18 +53,17 @@ async def bootstrap(
     token = credentials.credentials
     workspace_id = _seed_workspace()
 
-    # ── 1. Validate the Clerk JWT (reuses existing JWKS logic) ───────────────
-    # Temporarily upsert the workspace_id so _auth_clerk_jwt succeeds.
-    # We do a pre-check to ensure the workspace exists.
-    ws_row = await conn.execute(
-        text("SELECT workspace_id FROM workspaces WHERE workspace_id = :wid"),
+    # ── 1. Ensure the seed workspace exists (idempotent) ─────────────────────
+    await conn.execute(
+        text(
+            """
+            INSERT INTO workspaces (workspace_id, name, plan)
+            VALUES (:wid, 'Default Workspace', 'starter')
+            ON CONFLICT (workspace_id) DO NOTHING
+            """
+        ),
         {"wid": workspace_id},
     )
-    if not ws_row.fetchone():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Seed workspace '{workspace_id}' not found. Run database migrations first.",
-        )
 
     # ── 2. Validate JWT and extract clerk_user_id ─────────────────────────────
     from jose import JWTError, jwk, jwt as jose_jwt
