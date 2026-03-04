@@ -275,39 +275,46 @@ async def _auth_clerk_jwt(token: str, conn: AsyncConnection) -> AuthContext:
             workspace_id = record.workspace_id
 
     if not workspace_id:
-        # First-time user — auto-assign to the seed workspace.
-        # Also ensure the workspace row exists (guards against missing migration).
-        from app.config import settings as _settings
+        # First-time user — create a personal workspace for them.
+        # Each user gets an isolated workspace; the seed workspace is only for local dev.
         import sqlalchemy
-        seed = _settings.seed_workspace_id
+        from ulid import ULID as _ULID
+        new_ws_id = f"ws_{_ULID()}"
         email = claims.get("email") or f"{clerk_user_id}@clerk"
         try:
-            # Ensure workspace exists first (idempotent)
+            # Create the new workspace (idempotent)
             await conn.execute(
                 sqlalchemy.text(
                     """
                     INSERT INTO workspaces (workspace_id, name, plan)
-                    VALUES (:ws, 'Default Workspace', 'starter')
+                    VALUES (:ws, 'Personal Workspace', 'starter')
                     ON CONFLICT (workspace_id) DO NOTHING
                     """
                 ),
-                {"ws": seed},
+                {"ws": new_ws_id},
             )
-            # Now upsert the user
+            # Insert user — DO NOTHING on conflict so we never overwrite an existing workspace
             await conn.execute(
                 sqlalchemy.text(
                     """
                     INSERT INTO users (id, workspace_id, email)
                     VALUES (:id, :ws, :email)
-                    ON CONFLICT (id) DO UPDATE SET workspace_id = :ws
+                    ON CONFLICT (id) DO NOTHING
                     """
                 ),
-                {"id": clerk_user_id, "ws": seed, "email": email},
+                {"id": clerk_user_id, "ws": new_ws_id, "email": email},
             )
             await conn.commit()
+            # Re-fetch in case the user already existed (DO NOTHING above kept their old workspace)
+            row2 = await conn.execute(
+                sqlalchemy.text("SELECT workspace_id FROM users WHERE id = :uid"),
+                {"uid": clerk_user_id},
+            )
+            rec2 = row2.fetchone()
+            workspace_id = rec2.workspace_id if rec2 else new_ws_id
         except Exception as exc:
             logger.warning("user_upsert_failed", error=str(exc))
-        workspace_id = seed
+            workspace_id = new_ws_id
 
     return AuthContext(
         workspace_id=workspace_id,
