@@ -234,17 +234,10 @@ function KeyRow({
   copied: string | null;
 }) {
   return (
-    <div className="px-4 py-3 flex items-center gap-4 group hover:bg-surface-2 transition-colors">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-text font-medium">{apiKey.name}</p>
-        <div className="flex items-center gap-2.5 mt-1 flex-wrap">
-          <button
-            onClick={() => onCopy(apiKey.id, `id-${apiKey.id}`)}
-            className="inline-flex items-center gap-1 text-[11px] font-mono text-text-faint bg-surface-2 px-1.5 py-0.5 rounded hover:text-text-muted transition-colors"
-          >
-            {copied === `id-${apiKey.id}` ? <Check className="w-2.5 h-2.5 text-green-lore" /> : null}
-            {apiKey.id.slice(0, 16)}…
-          </button>
+    <div className="px-4 py-3 flex items-start gap-4 group hover:bg-surface-2 transition-colors">
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-text font-medium">{apiKey.name}</p>
           {apiKey.scopes.map(scope => (
             <span
               key={scope}
@@ -253,11 +246,36 @@ function KeyRow({
               {scope}
             </span>
           ))}
+        </div>
+
+        {/* Masked key value row */}
+        <div className="flex items-center gap-2">
+          <code className="font-mono text-xs text-text-faint bg-surface border border-border/60 px-2.5 py-1 rounded select-none">
+            sk-lore-••••••••••••••••••••••••••••••••
+          </code>
+          <span
+            title="The secret key is only shown once at creation time and cannot be retrieved afterwards."
+            className="text-[10px] text-amber/60 border border-amber/20 bg-amber/5 px-1.5 py-0.5 rounded cursor-help"
+          >
+            shown once at creation
+          </span>
+        </div>
+
+        {/* Key ID + metadata */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => onCopy(apiKey.id, `id-${apiKey.id}`)}
+            title="Copy key ID"
+            className="inline-flex items-center gap-1 text-[11px] font-mono text-text-faint bg-surface-2 border border-border/40 px-1.5 py-0.5 rounded hover:text-text-muted hover:border-border transition-colors"
+          >
+            {copied === `id-${apiKey.id}` ? <Check className="w-2.5 h-2.5 text-green-lore" /> : <Copy className="w-2.5 h-2.5" />}
+            ID: {apiKey.id.slice(0, 14)}…
+          </button>
           <span className="text-[11px] text-text-faint">last used: {relTime(apiKey.last_used_at)}</span>
           <span className="text-[11px] text-text-faint">created: {relTime(apiKey.created_at)}</span>
         </div>
       </div>
-      <form action={deleteAction} className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <form action={deleteAction} className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
         <input type="hidden" name="id" value={apiKey.id} />
         <button
           type="submit"
