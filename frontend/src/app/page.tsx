@@ -387,15 +387,3 @@ export default function Home() {
     </div>
   );
 }
-
-        </Link>
-        <Link
-          href="/sign-in"
-          className="px-5 py-2.5 rounded border border-border text-text-muted text-sm hover:text-text hover:border-text/30 transition-colors"
-        >
-          Sign in
-        </Link>
-      </div>
-    </main>
-  );
-}
