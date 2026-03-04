@@ -40,6 +40,19 @@ async def _verify_slack_signature(request: Request) -> bytes:
     """
     Verifies the X-Slack-Signature header using HMAC-SHA256.
     Raises 403 if invalid or if the signing secret is not configured.
+    NOTE: Do not use this as a Depends on url_verification — Slack's challenge
+    request has no signature. Call _verify_slack_signature_body instead, after
+    handling url_verification.
+    """
+    body = await request.body()
+    await _verify_slack_signature_body(request, body)
+    return body
+
+
+async def _verify_slack_signature_body(request: Request, body: bytes) -> None:
+    """
+    Inner HMAC verification — call this after reading the body yourself,
+    so url_verification can be handled before this check runs.
     """
     if not settings.slack_signing_secret:
         raise HTTPException(
@@ -49,7 +62,6 @@ async def _verify_slack_signature(request: Request) -> bytes:
 
     timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
     signature = request.headers.get("X-Slack-Signature", "")
-    body = await request.body()
 
     # Reject replayed requests older than 5 minutes
     try:
@@ -72,8 +84,6 @@ async def _verify_slack_signature(request: Request) -> bytes:
     if not hmac.compare_digest(expected, signature):
         raise HTTPException(status_code=403, detail="Invalid Slack signature.")
 
-    return body
-
 
 # ── Webhook endpoint ──────────────────────────────────────────────────────────
 
@@ -81,16 +91,21 @@ async def _verify_slack_signature(request: Request) -> bytes:
 async def slack_webhook(
     request: Request,
     conn: AsyncConnection = Depends(get_connection),
-    _body: bytes = Depends(_verify_slack_signature),
     workspace_id: str | None = None,
 ) -> dict:
     import json
 
-    payload = json.loads(_body)
+    body = await request.body()
+    payload = json.loads(body)
 
-    # Slack URL verification challenge (one-time handshake when installing the app)
+    # Slack URL verification challenge — must respond BEFORE signature check.
+    # Slack sends this once when you first configure the webhook URL.
+    # It has no X-Slack-Signature header, so we respond immediately.
     if payload.get("type") == "url_verification":
         return {"challenge": payload["challenge"]}
+
+    # All other events must pass signature verification
+    await _verify_slack_signature_body(request, body)
 
     event = payload.get("event", {})
     event_type = event.get("type", "")
