@@ -61,22 +61,23 @@ async def github_webhook(
     request: Request,
     conn: AsyncConnection = Depends(get_connection),
     _body: bytes = Depends(_verify_github_signature),
+    workspace_id: str | None = None,
 ) -> dict:
     event_type = request.headers.get("X-GitHub-Event", "")
     payload = json.loads(_body)
 
     if event_type == "pull_request_review":
-        await _handle_pr_review(payload, conn)
+        await _handle_pr_review(payload, conn, workspace_id)
 
     elif event_type == "pull_request_review_comment":
-        await _handle_review_comment(payload, conn)
+        await _handle_review_comment(payload, conn, workspace_id)
 
     return {"ok": True}
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────
 
-async def _handle_pr_review(payload: dict, conn: AsyncConnection) -> None:
+async def _handle_pr_review(payload: dict, conn: AsyncConnection, workspace_id: str | None = None) -> None:
     """
     A PR review was submitted. If it's 'changes_requested', it may indicate
     the reviewer is correcting AI-generated code (Copilot, Cursor, etc.).
@@ -89,7 +90,7 @@ async def _handle_pr_review(payload: dict, conn: AsyncConnection) -> None:
 
     pr = payload.get("pull_request", {})
     repo = payload.get("repository", {})
-    workspace_id = str(repo.get("owner", {}).get("id", "unknown"))
+    workspace_id = workspace_id or str(repo.get("owner", {}).get("id", "unknown"))
 
     capture = CaptureEventCreate(
         workspace_id=workspace_id,
@@ -118,7 +119,7 @@ async def _handle_pr_review(payload: dict, conn: AsyncConnection) -> None:
     logger.info("github_pr_review_captured", repo=repo.get("name"), pr=pr.get("number"))
 
 
-async def _handle_review_comment(payload: dict, conn: AsyncConnection) -> None:
+async def _handle_review_comment(payload: dict, conn: AsyncConnection, workspace_id: str | None = None) -> None:
     """
     An inline review comment was left on a PR. These frequently correct
     Copilot-suggested code patterns.
@@ -126,7 +127,7 @@ async def _handle_review_comment(payload: dict, conn: AsyncConnection) -> None:
     comment = payload.get("comment", {})
     pr = payload.get("pull_request", {})
     repo = payload.get("repository", {})
-    workspace_id = str(repo.get("owner", {}).get("id", "unknown"))
+    workspace_id = workspace_id or str(repo.get("owner", {}).get("id", "unknown"))
 
     # Only capture if the comment suggests an alternative (non-trivial heuristic at MVP)
     body_lower = comment.get("body", "").lower()

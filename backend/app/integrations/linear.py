@@ -55,19 +55,20 @@ async def linear_webhook(
     request: Request,
     conn: AsyncConnection = Depends(get_connection),
     _body: bytes = Depends(_verify_linear_signature),
+    workspace_id: str | None = None,
 ) -> dict:
     payload = json.loads(_body)
     action = payload.get("action", "")
 
     if action == "update" and payload.get("type") == "Issue":
-        await _handle_issue_update(payload, conn)
+        await _handle_issue_update(payload, conn, workspace_id)
 
     return {"ok": True}
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────
 
-async def _handle_issue_update(payload: dict, conn: AsyncConnection) -> None:
+async def _handle_issue_update(payload: dict, conn: AsyncConnection, workspace_id: str | None = None) -> None:
     """
     An issue was updated. We check if the update changes fields that are
     commonly set by AI (title, description, priority, assignee).
@@ -79,7 +80,7 @@ async def _handle_issue_update(payload: dict, conn: AsyncConnection) -> None:
     if not updated_from:
         return  # No change details — skip
 
-    workspace_id = data.get("teamId", "unknown")
+    workspace_id = workspace_id or data.get("teamId", "unknown")
     actor_id = str(payload.get("actor", {}).get("id", "unknown"))
 
     # Build deltas for each changed field

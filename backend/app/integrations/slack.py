@@ -82,6 +82,7 @@ async def slack_webhook(
     request: Request,
     conn: AsyncConnection = Depends(get_connection),
     _body: bytes = Depends(_verify_slack_signature),
+    workspace_id: str | None = None,
 ) -> dict:
     import json
 
@@ -95,18 +96,18 @@ async def slack_webhook(
     event_type = event.get("type", "")
 
     if event_type == "message" and event.get("subtype") == "message_changed":
-        await _handle_message_changed(event, conn)
+        await _handle_message_changed(event, conn, workspace_id)
 
     elif event_type == "reaction_added":
         if event.get("reaction") in REJECTION_REACTIONS:
-            await _handle_rejection_reaction(event, conn)
+            await _handle_rejection_reaction(event, conn, workspace_id)
 
     return {"ok": True}
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────
 
-async def _handle_message_changed(event: dict, conn: AsyncConnection) -> None:
+async def _handle_message_changed(event: dict, conn: AsyncConnection, workspace_id: str | None = None) -> None:
     """
     A message was edited. If the previous message was from a bot/AI and
     the editor is a human, this is a correction event.
@@ -122,7 +123,7 @@ async def _handle_message_changed(event: dict, conn: AsyncConnection) -> None:
     if not actor_id or actor_id == previous.get("bot_id"):
         return  # Bot edited its own message — not a correction
 
-    workspace_id = event.get("authed_users", ["unknown"])[0]
+    workspace_id = workspace_id or event.get("authed_users", ["unknown"])[0]
     channel = event.get("channel", "unknown")
     ts = event.get("ts", "")
 
@@ -149,10 +150,10 @@ async def _handle_message_changed(event: dict, conn: AsyncConnection) -> None:
     logger.info("slack_correction_captured", actor_id=actor_id, channel=channel)
 
 
-async def _handle_rejection_reaction(event: dict, conn: AsyncConnection) -> None:
+async def _handle_rejection_reaction(event: dict, conn: AsyncConnection, workspace_id: str | None = None) -> None:
     """A thumbs-down / ❌ reaction on a bot message signals explicit rejection."""
     item = event.get("item", {})
-    workspace_id = event.get("authed_users", ["unknown"])[0]
+    workspace_id = workspace_id or event.get("authed_users", ["unknown"])[0]
 
     capture = CaptureEventCreate(
         workspace_id=workspace_id,
